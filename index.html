@@ -1,1 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Poker Probability Simulator — Kavya Shah</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:#060d08;color:#e8e0d0;overflow-x:hidden}
+:root{
+  --gold:#c8a84b;--gold2:#f0d080;--gold3:rgba(200,168,75,0.12);--gold4:rgba(200,168,75,0.06);
+  --felt:#0f2d1c;--felt2:#163824;--felt3:#081408;
+  --card:#faf6ed;--red:#bf3929;--black:#12100a;
+  --gw:#27ae60;--bo:#2980b9;--gt:#7f8c8d;
+  --r:12px;--tr:.32s cubic-bezier(.4,0,.2,1);
+}
 
+/* ═══════════════════════════════════════
+   LANDING
+═══════════════════════════════════════ */
+#landing{
+  position:fixed;inset:0;z-index:500;
+  background:radial-gradient(ellipse 150% 110% at 50% -8%,#1d5030 0%,#0a1a0e 55%,#060d08 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:2rem;
+  transition:opacity .8s ease,transform .8s cubic-bezier(.4,0,.2,1);
+}
+#landing.gone{opacity:0;pointer-events:none;transform:scale(1.1) translateY(-24px)}
+#fcbg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.fc{position:absolute;width:58px;height:82px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.6rem;animation:floatUp linear infinite;opacity:0;will-change:transform,opacity}
+.fc-back{background:linear-gradient(145deg,#1d4228 0%,#0e2218 100%);border:1px solid rgba(200,168,75,.2)}
+.fc-front{background:#faf6ed;border:1px solid rgba(0,0,0,.1);flex-direction:column;align-items:flex-start;justify-content:space-between;padding:5px 7px;font-family:'DM Mono',monospace;font-size:.9rem;font-weight:500}
+@keyframes floatUp{
+  0%{transform:translateY(110vh) rotate(var(--r0)) scale(.7);opacity:0}
+  5%{opacity:var(--op)}92%{opacity:var(--op)}
+  100%{transform:translateY(-22vh) rotate(var(--r1)) scale(1.15);opacity:0}
+}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(200,168,75,.25);padding:5px 20px;border-radius:30px;margin-bottom:2.2rem;position:relative;z-index:2;backdrop-filter:blur(4px);background:rgba(0,0,0,.2)}
+.hero-h1{font-family:'Playfair Display',serif;font-size:clamp(3.5rem,10vw,7.5rem);font-weight:900;line-height:.92;letter-spacing:-.025em;margin-bottom:1.6rem;position:relative;z-index:2}
+.hero-h1 em{color:var(--gold);font-style:italic;display:block}
+.hero-h1 .sub-word{font-weight:700;font-size:.7em;display:block;color:rgba(232,224,208,.5);letter-spacing:.04em}
+.hero-desc{font-size:1rem;color:rgba(180,215,195,.55);max-width:520px;line-height:1.9;margin-bottom:3rem;position:relative;z-index:2}
+.hero-desc strong{color:rgba(200,168,75,.9);font-weight:500}
+.hero-chips{display:flex;gap:1.2rem;justify-content:center;margin-bottom:3rem;position:relative;z-index:2;flex-wrap:wrap}
+.hchip{display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(200,168,75,.6)}
+.hchip::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0}
+.btn-deal{position:relative;z-index:2;display:inline-flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--gold),#a07830);color:#080f0a;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:18px 52px;border-radius:50px;border:none;cursor:pointer;transition:all var(--tr);box-shadow:0 0 50px rgba(200,168,75,.28),0 4px 20px rgba(0,0,0,.4)}
+.btn-deal:hover{transform:translateY(-4px);box-shadow:0 0 80px rgba(200,168,75,.45),0 14px 45px rgba(0,0,0,.5)}
+.btn-deal .arr{font-size:1.2rem;transition:transform var(--tr)}
+.btn-deal:hover .arr{transform:translateX(6px)}
+
+/* ═══════════════════════════════════════
+   GAME SCREEN
+═══════════════════════════════════════ */
+#game{min-height:100vh;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .65s ease .5s}
+#game.on{opacity:1;pointer-events:all}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(6,13,8,.95);backdrop-filter:blur(24px);border-bottom:1px solid rgba(200,168,75,.1);height:56px;padding:0 2rem;display:flex;align-items:center;justify-content:space-between}
+.nbrand{font-family:'Playfair Display',serif;font-size:.9rem;color:var(--gold);letter-spacing:.06em}
+.nbrand a{color:rgba(200,168,75,.55);font-family:'DM Sans',sans-serif;font-weight:400;font-size:.8rem;text-decoration:none;letter-spacing:.02em;transition:all var(--tr);border-bottom:1px solid transparent}
+.nbrand a:hover{color:var(--gold2);border-bottom-color:rgba(200,168,75,.4)}
+.nabout{font-family:'DM Sans',sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(200,168,75,.55);background:transparent;border:1px solid rgba(200,168,75,.15);padding:6px 18px;border-radius:30px;cursor:pointer;transition:all var(--tr);text-decoration:none}
+.nabout:hover{color:var(--gold);border-color:var(--gold);background:var(--gold3);box-shadow:0 0 20px rgba(200,168,75,.15)}
+
+/* BODY */
+.gbody{flex:1;display:flex;flex-direction:column;align-items:center;padding:1.4rem 1rem 3rem;gap:1rem;max-width:920px;margin:0 auto;width:100%}
+
+/* SCENARIO BAR */
+.scenario-bar{width:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sc-label{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(200,168,75,.45);flex-shrink:0}
+.sc-btn{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:rgba(200,168,75,.5);padding:5px 13px;border-radius:20px;cursor:pointer;transition:all var(--tr)}
+.sc-btn:hover{background:var(--gold3);border-color:rgba(200,168,75,.25);color:rgba(200,168,75,.8)}
+.sc-btn.act{background:var(--gold3);border-color:rgba(200,168,75,.4);color:var(--gold);box-shadow:0 0 14px rgba(200,168,75,.12)}
+
+/* STAGE PILL */
+.stage-pill{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);background:rgba(200,168,75,.07);border:1px solid rgba(200,168,75,.2);padding:5px 20px;border-radius:30px;transition:all .4s}
+
+/* PLAYER ZONES */
+.pzone{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;transition:opacity .65s,filter .65s}
+.pzone.folded{opacity:.25;filter:grayscale(.8)}
+.plabel{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(200,168,75,.55)}
+.fbadge{font-size:.5rem;letter-spacing:.1em;background:rgba(231,76,60,.1);color:#df5040;border:1px solid rgba(231,76,60,.22);padding:2px 8px;border-radius:8px;display:none}
+.fbadge.on{display:inline}
+
+/* PROB STRIP */
+.pstrip{display:flex;align-items:center;gap:14px;background:rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.06);border-radius:50px;padding:8px 24px;position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.pstrip::before{content:'';position:absolute;left:0;top:0;bottom:0;background:rgba(200,168,75,.04);width:var(--fill,50%);transition:width .85s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.pri{text-align:center;min-width:56px;position:relative;z-index:1}
+.prv{font-family:'DM Mono',monospace;font-size:1.25rem;font-weight:500;line-height:1;transition:color .5s,transform .4s}
+.prl{font-size:.52rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(200,168,75,.35);margin-top:4px}
+.prv.gw{color:var(--gw)}.prv.bo{color:var(--bo)}.prv.gr{color:var(--gt)}
+.pdiv{width:1px;height:34px;background:rgba(255,255,255,.07)}
+
+/* CARDS */
+.crow{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+.card{
+  width:64px;height:90px;background:var(--card);border-radius:9px;
+  box-shadow:0 8px 28px rgba(0,0,0,.65),0 2px 8px rgba(0,0,0,.4);
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;
+  padding:6px 8px;font-family:'DM Mono',monospace;font-size:1rem;font-weight:500;line-height:1.1;
+  position:relative;overflow:hidden;flex-shrink:0;
+  transition:transform .28s cubic-bezier(.34,1.56,.64,1),box-shadow .28s ease;
+}
+.card.red{color:var(--red)}.card.black{color:var(--black)}
+.card .csym{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2.4rem;opacity:.07}
+.card .cbot{align-self:flex-end;transform:rotate(180deg)}
+.card:not(.fdown):not(.empty):hover{transform:translateY(-9px) scale(1.05) rotate(-1deg);box-shadow:0 24px 50px rgba(0,0,0,.8),0 0 22px rgba(200,168,75,.18)}
+.card.fdown{background:var(--felt2);border:1.5px solid rgba(200,168,75,.2);box-shadow:0 5px 18px rgba(0,0,0,.55)}
+.card.fdown::after{content:'♠';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2.2rem;color:rgba(200,168,75,.2)}
+.card.empty{background:rgba(255,255,255,.02);border:1.5px dashed rgba(255,255,255,.07);box-shadow:none}
+@keyframes dealIn{0%{transform:translateY(-44px) scale(.52) rotate(-14deg);opacity:0;filter:blur(3px)}60%{filter:blur(0)}100%{transform:none;opacity:1;filter:blur(0)}}
+.da{animation:dealIn .5s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes commReveal{0%{transform:translateY(-32px) scale(.6) rotate(var(--crot,7deg));opacity:0;filter:blur(4px)}55%{filter:blur(0)}100%{transform:translateY(0) scale(1) rotate(0deg);opacity:1;filter:blur(0)}}
+@keyframes commGlow{0%{box-shadow:0 8px 28px rgba(0,0,0,.65),0 0 28px 4px rgba(200,168,75,.5)}100%{box-shadow:0 8px 28px rgba(0,0,0,.65),0 0 0 rgba(200,168,75,0)}}
+.comm-da{animation:commReveal .54s cubic-bezier(.34,1.56,.64,1) both,commGlow 1.4s ease-out .25s both}
+@keyframes winPulse{0%,100%{box-shadow:0 8px 28px rgba(0,0,0,.65),0 0 0 0 rgba(200,168,75,0)}50%{box-shadow:0 8px 28px rgba(0,0,0,.65),0 0 34px 10px rgba(200,168,75,.5)}}
+.card.winner-glow{animation:winPulse 1.8s ease-in-out infinite}
+
+/* POKER TABLE */
+.ptable{
+  width:100%;
+  background:radial-gradient(ellipse 90% 80% at 50% 40%,#1d6440 0%,#0e2d1a 65%,#081508 100%);
+  border-radius:100px;border:8px solid #0a1e10;
+  box-shadow:0 0 0 3px #050c07,0 28px 80px rgba(0,0,0,.9),inset 0 0 90px rgba(0,0,0,.45);
+  padding:1.8rem 3rem;display:flex;flex-direction:column;align-items:center;gap:.9rem;
+  position:relative;min-height:155px;transition:box-shadow .7s ease;
+}
+.ptable::before{content:'';position:absolute;inset:13px;border-radius:90px;border:1px solid rgba(200,168,75,.07);pointer-events:none}
+.ptable::after{content:'';position:absolute;inset:22px;border-radius:82px;border:1px solid rgba(200,168,75,.04);pointer-events:none}
+.clbl{font-family:'DM Mono',monospace;font-size:.56rem;letter-spacing:.22em;text-transform:uppercase;color:rgba(200,168,75,.38);text-align:center}
+.potxt{font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.1em;color:rgba(200,168,75,.38);text-align:center;margin-top:.15rem;transition:color .4s}
+
+/* INSIGHT BANNER */
+.insight-bar{
+  width:100%;background:rgba(0,0,0,.3);
+  border:1px solid rgba(200,168,75,.12);border-radius:10px;
+  padding:.65rem 1.1rem;display:none;align-items:flex-start;gap:.7rem;
+}
+.insight-bar.on{display:flex;animation:fadeSlide .4s ease both}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.insight-icon{font-size:.9rem;flex-shrink:0;margin-top:1px}
+.insight-text{font-size:.78rem;color:rgba(180,215,195,.65);line-height:1.6;font-style:italic}
+.insight-text strong{color:rgba(232,224,208,.8);font-style:normal}
+
+/* EV DISPLAY */
+#evDisplay{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.1em;color:rgba(200,168,75,.5);margin-top:4px;text-align:center;transition:color .4s}
+
+/* ACTIONS */
+.arow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.abtn{font-family:'DM Sans',sans-serif;font-size:.73rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:12px 30px;border-radius:30px;cursor:pointer;transition:all var(--tr);border:1px solid;position:relative;overflow:hidden}
+.abtn::after{content:'';position:absolute;inset:0;opacity:0;background:#fff;transition:opacity .15s}
+.abtn:active:not(:disabled)::after{opacity:.08}
+.abtn.fold{background:rgba(231,76,60,.08);color:#df6050;border-color:rgba(231,76,60,.25)}
+.abtn.fold:hover:not(:disabled){background:rgba(231,76,60,.18);border-color:#e74c3c;color:#ff7868;transform:translateY(-2px);box-shadow:0 6px 20px rgba(231,76,60,.2)}
+.abtn.call{background:rgba(39,174,96,.08);color:#27ae60;border-color:rgba(39,174,96,.25)}
+.abtn.call:hover:not(:disabled){background:rgba(39,174,96,.18);border-color:#27ae60;transform:translateY(-2px);box-shadow:0 6px 20px rgba(39,174,96,.2)}
+.abtn:disabled{opacity:.2;cursor:not-allowed}
+
+/* GRAPH */
+.graph-wrap{width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:var(--r);padding:.9rem 1rem .5rem;box-shadow:0 4px 24px rgba(0,0,0,.25);position:relative}
+.graph-legend{font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(200,168,75,.4);margin-bottom:.55rem;display:flex;gap:1.2rem;align-items:center}
+#graphTooltip{
+  position:absolute;background:rgba(6,13,8,.96);border:1px solid rgba(200,168,75,.25);
+  border-radius:10px;padding:.7rem .9rem;pointer-events:none;
+  opacity:0;transition:opacity .18s;z-index:50;min-width:170px;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);font-size:.72rem;line-height:1.6;
+}
+#graphTooltip .tt-stage{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:.4rem}
+#graphTooltip .tt-row{display:flex;justify-content:space-between;gap:1rem;color:rgba(200,210,200,.6)}
+#graphTooltip .tt-val{font-family:'DM Mono',monospace;font-weight:500;color:rgba(232,224,208,.9)}
+#graphTooltip .tt-insight{margin-top:.5rem;font-style:italic;color:rgba(180,215,195,.55);border-top:1px solid rgba(255,255,255,.06);padding-top:.45rem;font-size:.68rem}
+
+/* RESULT */
+.resbox{width:100%;text-align:center;background:linear-gradient(135deg,rgba(0,0,0,.5),rgba(15,30,18,.6));border:1px solid rgba(200,168,75,.22);border-radius:var(--r);padding:1.5rem 1.8rem;display:none;box-shadow:0 0 70px rgba(200,168,75,.07),0 24px 70px rgba(0,0,0,.5)}
+.resbox.on{display:block;animation:resAppear .55s cubic-bezier(.34,1.56,.64,1)}
+@keyframes resAppear{from{transform:scale(.94) translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.restitle{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:700;color:var(--gold2);margin-bottom:.4rem;text-shadow:0 0 40px rgba(200,168,75,.3)}
+.ressub{font-size:.78rem;color:rgba(200,168,75,.55);font-family:'DM Mono',monospace;letter-spacing:.12em;margin-bottom:1rem}
+/* result cards section */
+.res-cards-section{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.1rem}
+.res-player-block{text-align:center}
+.res-player-lbl{font-family:'DM Mono',monospace;font-size:.54rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(200,168,75,.45);margin-bottom:.5rem}
+.res-crow{display:flex;gap:6px;justify-content:center}
+.res-card{width:46px;height:64px;background:var(--card);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:4px 5px;font-family:'DM Mono',monospace;font-size:.72rem;font-weight:500;line-height:1.1;position:relative;overflow:hidden;flex-shrink:0}
+.res-card.red{color:var(--red)}.res-card.black{color:var(--black)}
+.res-card .rcs{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.6rem;opacity:.07}
+.res-card .rcb{align-self:flex-end;transform:rotate(180deg)}
+@keyframes resCardIn{from{transform:translateY(-20px) scale(.7);opacity:0}to{transform:none;opacity:1}}
+.res-card{animation:resCardIn .4s cubic-bezier(.34,1.56,.64,1) both}
+.resexplain{font-size:.84rem;color:rgba(180,215,195,.55);line-height:1.8;max-width:580px;margin:0 auto;background:rgba(0,0,0,.22);border-radius:10px;padding:.9rem 1.3rem;border-left:2px solid rgba(200,168,75,.3);text-align:left}
+.resexplain strong{color:rgba(232,224,208,.82)}
+
+/* NEW HAND */
+.nhrow{text-align:center}
+.btn-nh{display:inline-flex;align-items:center;gap:8px;background:transparent;color:rgba(200,168,75,.5);border:1px solid rgba(200,168,75,.18);font-family:'DM Sans',sans-serif;font-size:.73rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:10px 28px;border-radius:30px;cursor:pointer;transition:all var(--tr)}
+.btn-nh:hover{color:var(--gold);border-color:var(--gold);background:var(--gold3);box-shadow:0 0 20px rgba(200,168,75,.12);transform:translateY(-1px)}
+
+/* CONFETTI */
+#confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:800;opacity:0;transition:opacity .3s}
+#confettiCanvas.on{opacity:1}
+
+/* DIM OVERLAY on loss */
+#lossOverlay{position:fixed;inset:0;pointer-events:none;z-index:799;background:rgba(0,0,0,.0);transition:background .8s ease}
+#lossOverlay.on{background:rgba(0,0,0,.28)}
+
+/* ═══════════════════════════════════════
+   INFO POPUP
+═══════════════════════════════════════ */
+#infoPop{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.92);backdrop-filter:blur(18px);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;opacity:0;pointer-events:none;transition:opacity .35s}
+#infoPop.on{opacity:1;pointer-events:all}
+.icard{background:linear-gradient(170deg,#0f1d12 0%,#0a1410 60%,#07100a 100%);border:1px solid rgba(200,168,75,.18);border-radius:24px;padding:2.8rem 2.5rem 3rem;max-width:660px;width:100%;position:relative;box-shadow:0 60px 180px rgba(0,0,0,.95),0 0 0 1px rgba(200,168,75,.05);margin:auto}
+#infoPop.on .icard{animation:pop .48s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes pop{from{transform:scale(.88) translateY(22px);opacity:0}to{transform:none;opacity:1}}
+.icls{position:absolute;top:1.2rem;right:1.2rem;background:linear-gradient(135deg,var(--gold),#a07830);color:#080f0a;font-size:.72rem;font-weight:700;height:36px;padding:0 18px;border-radius:30px;cursor:pointer;display:flex;align-items:center;gap:6px;border:none;transition:all var(--tr);letter-spacing:.07em;font-family:'DM Sans',sans-serif;box-shadow:0 0 24px rgba(200,168,75,.3)}
+.icls:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 0 40px rgba(200,168,75,.5)}
+.itag{font-family:'DM Mono',monospace;font-size:.54rem;letter-spacing:.28em;text-transform:uppercase;color:rgba(200,168,75,.6);margin-bottom:.6rem}
+.ititle{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:var(--gold2);line-height:1.08;margin-bottom:.4rem}
+.ititle-sub{font-size:.82rem;color:rgba(180,210,190,.38);margin-bottom:2.4rem;font-style:italic}
+.isection{margin-bottom:2.2rem;padding-bottom:2.2rem;border-bottom:1px solid rgba(255,255,255,.04)}
+.isection:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.isec-head{display:flex;align-items:center;gap:.7rem;font-family:'DM Mono',monospace;font-size:.56rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:.95rem}
+.isec-num{width:24px;height:24px;border-radius:50%;background:rgba(200,168,75,.1);border:1px solid rgba(200,168,75,.28);color:var(--gold);font-size:.6rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.isec-rule{flex:1;height:1px;background:linear-gradient(to right,rgba(200,168,75,.2),transparent)}
+.isec-body{font-size:.88rem;color:rgba(180,210,190,.6);line-height:1.88}
+.isec-body strong{color:rgba(232,224,208,.88)}
+.isec-body em{color:rgba(200,168,75,.8);font-style:normal}
+.steps-strip{display:flex;gap:4px;margin:1rem 0 .9rem}
+.step-item{display:flex;flex-direction:column;align-items:center;gap:.4rem;flex:1;position:relative}
+.step-item:not(:last-child)::after{content:'›';position:absolute;right:-4px;top:7px;font-size:1rem;color:rgba(200,168,75,.22)}
+.step-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,rgba(200,168,75,.15),rgba(200,168,75,.04));border:1px solid rgba(200,168,75,.26);color:var(--gold);font-family:'DM Mono',monospace;font-size:.66rem;display:flex;align-items:center;justify-content:center}
+.step-lbl{font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(200,168,75,.48);text-align:center}
+/* hand rankings */
+.hand-rankings{display:flex;flex-direction:column;gap:7px;margin-top:.2rem}
+.hand-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.04);border-radius:12px;padding:8px 12px;transition:all .22s ease;position:relative;overflow:hidden;cursor:default}
+.hand-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2.5px;background:var(--hc,rgba(200,168,75,.35));border-radius:2px 0 0 2px}
+.hand-row:hover{background:rgba(200,168,75,.05);border-color:rgba(200,168,75,.1);transform:translateX(2px)}
+.hrb{width:22px;height:22px;border-radius:50%;flex-shrink:0;background:rgba(200,168,75,.08);border:1px solid rgba(200,168,75,.2);color:var(--gold);font-family:'DM Mono',monospace;font-size:.55rem;display:flex;align-items:center;justify-content:center}
+.hinfo{flex:1;min-width:0}
+.hname{font-size:.78rem;font-weight:600;color:rgba(232,224,208,.85);line-height:1.2}
+.hprob{font-family:'DM Mono',monospace;font-size:.58rem;color:rgba(200,168,75,.52);margin-top:1px}
+.hcards{display:flex;gap:3px;flex-shrink:0;align-items:center}
+.mc{width:26px;height:36px;background:var(--card);border-radius:4px;box-shadow:0 3px 10px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:2px 3px;font-family:'DM Mono',monospace;font-size:.48rem;font-weight:600;line-height:1;position:relative;overflow:hidden;flex-shrink:0;transition:transform .18s ease,box-shadow .18s ease}
+.mc-s{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.85rem;opacity:.09}
+.mc-b{align-self:flex-end;transform:rotate(180deg)}
+.mc.red{color:var(--red)}.mc.blk{color:var(--black)}
+.hand-row:hover .mc{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.7)}
+
+/* ═══════════════════════════════════════
+   ABOUT MODAL
+═══════════════════════════════════════ */
+#aov{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.84);backdrop-filter:blur(14px);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:1.5rem 1rem;opacity:0;pointer-events:none;transition:opacity .35s}
+#aov.on{opacity:1;pointer-events:all}
+.acard{background:linear-gradient(160deg,#111e14,#0a1510);border:1px solid rgba(200,168,75,.22);border-radius:20px;padding:2.5rem;max-width:680px;width:100%;position:relative;box-shadow:0 50px 150px rgba(0,0,0,.9);margin:auto}
+#aov.on .acard{animation:pop .42s cubic-bezier(.34,1.56,.64,1) both}
+.acls{position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(200,220,210,.35);font-size:.9rem;width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--tr)}
+.acls:hover{background:rgba(200,168,75,.12);color:var(--gold);border-color:rgba(200,168,75,.3)}
+.atag{font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:.8rem}
+.atitle{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:var(--gold2);line-height:1;margin-bottom:.3rem}
+.adesc{font-size:.85rem;color:rgba(180,210,190,.5);line-height:1.8;margin-bottom:1.4rem}
+.adesc strong{color:rgba(232,224,208,.75)}
+.dyn-block{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:.85rem 1rem;margin-bottom:.7rem}
+.dyn-title{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:.3rem}
+.dyn-body{font-size:.8rem;color:rgba(180,210,190,.55);line-height:1.65}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#060d08}
+::-webkit-scrollbar-thumb{background:rgba(200,168,75,.2);border-radius:2px}
+
+@media(max-width:580px){
+  .ptable{border-radius:55px;padding:1.5rem 1rem}
+  .ptable::before{border-radius:47px}.ptable::after{border-radius:40px}
+  .card{width:54px;height:76px;font-size:.88rem}
+  .pstrip{gap:10px;padding:6px 14px}
+  .icard{padding:2rem 1.3rem 2.4rem}
+  .ititle{font-size:1.65rem}
+  .hcards{display:none}
+  .res-cards-section{gap:1rem}
+}
+</style>
+</head>
+<body>
+
+<!-- CONFETTI CANVAS -->
+<canvas id="confettiCanvas"></canvas>
+<div id="lossOverlay"></div>
+
+<!-- ═══════════ LANDING ═══════════ -->
+<div id="landing">
+  <div id="fcbg"></div>
+  <div class="hero-eyebrow">♠ Monte Carlo Engine · Texas Hold'em · Live Simulation</div>
+  <h1 class="hero-h1">Poker<br><em>Probability</em><span class="sub-word">Simulator</span></h1>
+  <p class="hero-desc">Every card changes everything. This simulator runs <strong>thousands of possible game outcomes</strong> in real time — estimating your winning probability at each stage. Watch probabilities evolve, collapse, and flip as new information is revealed.</p>
+  <div class="hero-chips">
+    <div class="hchip">Monte Carlo Simulation</div>
+    <div class="hchip">Dynamic Probability</div>
+    <div class="hchip">Decision Under Uncertainty</div>
+    <div class="hchip">Outcome Volatility</div>
+  </div>
+  <button class="btn-deal" onclick="openInfoPopup()">Analyze a Hand <span class="arr">→</span></button>
+</div>
+
+<!-- ═══════════ GAME ═══════════ -->
+<div id="game">
+  <nav>
+    <div class="nbrand">♠ Poker Simulator &nbsp;·&nbsp; <a href="https://in.linkedin.com/in/kavyashah911" target="_blank">Kavya Shah</a></div>
+    <a href="#" class="nabout" onclick="openAbout();return false">About</a>
+  </nav>
+
+  <div class="gbody">
+    <!-- SCENARIOS -->
+    <div class="scenario-bar">
+      <span class="sc-label">Scenario:</span>
+      <button class="sc-btn act" id="sc0" onclick="pickScenario(0)">Random</button>
+      <button class="sc-btn" id="sc1" onclick="pickScenario(1)">Underdog Wins</button>
+      <button class="sc-btn" id="sc2" onclick="pickScenario(2)">Instant Flip</button>
+      <button class="sc-btn" id="sc3" onclick="pickScenario(3)">Close Fight</button>
+      <button class="sc-btn" id="sc4" onclick="pickScenario(4)">Domination</button>
+      <button class="sc-btn" id="sc5" onclick="pickScenario(5)">Tie / Split</button>
+    </div>
+
+    <div class="stage-pill" id="sPill">Select a scenario and deal</div>
+
+    <!-- OPPONENT -->
+    <div class="pzone" id="zP2">
+      <div class="plabel">Opponent · Player 2 <span class="fbadge" id="fb2">Folded</span></div>
+      <div class="crow" id="p2c"><div class="card fdown"></div><div class="card fdown"></div></div>
+      <div class="pstrip" id="ps2" style="--fill:50%">
+        <div class="pri"><div class="prv bo" id="p2w">—</div><div class="prl">Win</div></div>
+        <div class="pdiv"></div>
+        <div class="pri"><div class="prv gr" id="p2t">—</div><div class="prl">Tie</div></div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="ptable">
+      <div class="clbl">Community Cards</div>
+      <div class="crow" id="cc">
+        <div class="card empty"></div><div class="card empty"></div><div class="card empty"></div>
+        <div class="card empty"></div><div class="card empty"></div>
+      </div>
+      <div class="potxt" id="potxt">Choose a scenario to begin</div>
+    </div>
+
+    <!-- INSIGHT BAR -->
+    <div class="insight-bar" id="insightBar">
+      <span class="insight-icon">💡</span>
+      <span class="insight-text" id="insightText"></span>
+    </div>
+
+    <!-- PLAYER 1 -->
+    <div class="pzone" id="zP1">
+      <div class="pstrip" id="ps1" style="--fill:50%">
+        <div class="pri"><div class="prv gw" id="p1w">—</div><div class="prl">Win</div></div>
+        <div class="pdiv"></div>
+        <div class="pri"><div class="prv gr" id="p1t">—</div><div class="prl">Tie</div></div>
+      </div>
+      <div class="crow" id="p1c"><div class="card empty"></div><div class="card empty"></div></div>
+      <div class="plabel">You · Player 1 <span class="fbadge" id="fb1">Folded</span></div>
+      <div class="arow">
+        <button class="abtn fold" id="bFold" onclick="doFold()" disabled>✕ Fold</button>
+        <button class="abtn call" id="bCall" onclick="doNext()" disabled>✓ Call / Raise →</button>
+      </div>
+      <div id="evDisplay"></div>
+    </div>
+
+    <!-- PROB GRAPH -->
+    <div class="graph-wrap" id="graphWrap">
+      <div class="graph-legend">
+        Probability Graph &nbsp;
+        <span style="color:rgba(39,174,96,.85);">— You</span>
+        <span style="color:rgba(41,128,185,.85);">— Opponent</span>
+      </div>
+      <div style="position:relative">
+        <canvas id="probCanvas" width="800" height="120" style="width:100%;height:auto;display:block;cursor:crosshair"></canvas>
+        <div id="graphTooltip"></div>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="resbox" id="resBox">
+      <div class="restitle" id="resTitle"></div>
+      <div class="ressub" id="resSub"></div>
+      <div class="res-cards-section" id="resCards"></div>
+      <div class="resexplain" id="resExplain"></div>
+    </div>
+
+    <div class="nhrow"><button class="btn-nh" onclick="newHand()">↺ New Hand</button></div>
+  </div>
+</div>
+
+<!-- ═══════════ INFO POPUP ═══════════ -->
+<div id="infoPop">
+  <div class="icard">
+    <button class="icls" onclick="closeInfoAndStart()">Start Playing ♠</button>
+    <div class="itag">♣ Know Before You Play</div>
+    <div class="ititle">Texas Hold'em<br>Essentials</div>
+    <div class="ititle-sub">Learn the game, then play the odds.</div>
+    <div class="isection">
+      <div class="isec-head"><div class="isec-num">01</div>What is Poker<div class="isec-rule"></div></div>
+      <div class="isec-body">Poker is a <strong>probability-based decision game</strong> where each player acts under incomplete information. Unlike games of pure chance, poker rewards players who understand <em>mathematical odds</em>, read their opponents, and manage risk. Every action — call, raise, fold — carries an expected value. The goal isn't just to hold the best hand; it's to make the best <strong>decision</strong> given what you know at each moment.</div>
+    </div>
+    <div class="isection">
+      <div class="isec-head"><div class="isec-num">02</div>Rules<div class="isec-rule"></div></div>
+      <div class="isec-body"><strong>Each player receives 2 private hole cards.</strong> Five community cards are revealed in stages. The player who forms the best 5-card hand — from any combination of their 2 hole cards and the 5 community cards — wins the pot. You may use <strong>both, one, or neither</strong> of your hole cards.</div>
+    </div>
+    <div class="isection">
+      <div class="isec-head"><div class="isec-num">03</div>How to Play<div class="isec-rule"></div></div>
+      <div class="isec-body">Follow the five stages of a Texas Hold'em hand:</div>
+      <div class="steps-strip">
+        <div class="step-item"><div class="step-num">1</div><div class="step-lbl">Pre-Flop</div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-lbl">Flop</div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-lbl">Turn</div></div>
+        <div class="step-item"><div class="step-num">4</div><div class="step-lbl">River</div></div>
+        <div class="step-item"><div class="step-num">5</div><div class="step-lbl">Showdown</div></div>
+      </div>
+      <div class="isec-body"><strong>Pre-flop:</strong> Hole cards dealt privately. <strong>Flop:</strong> 3 community cards revealed. <strong>Turn:</strong> The 4th card. <strong>River:</strong> Final 5th card. <strong>Showdown:</strong> Best hand wins the pot.</div>
+    </div>
+    <div class="isection">
+      <div class="isec-head"><div class="isec-num">04</div>Hand Rankings<div class="isec-rule"></div></div>
+      <div class="isec-body" style="margin-bottom:1rem;">Ranked highest to lowest — approximate probability in a 5-card hand:</div>
+      <div class="hand-rankings">
+        <div class="hand-row" style="--hc:rgba(255,210,0,.7)"><div class="hrb">1</div><div class="hinfo"><div class="hname">Royal Flush</div><div class="hprob">0.0002%</div></div><div class="hcards"><div class="mc blk"><span>A<br>♠</span><span class="mc-s">♠</span><span class="mc-b">A<br>♠</span></div><div class="mc blk"><span>K<br>♠</span><span class="mc-s">♠</span><span class="mc-b">K<br>♠</span></div><div class="mc blk"><span>Q<br>♠</span><span class="mc-s">♠</span><span class="mc-b">Q<br>♠</span></div><div class="mc blk"><span>J<br>♠</span><span class="mc-s">♠</span><span class="mc-b">J<br>♠</span></div><div class="mc blk"><span>10<br>♠</span><span class="mc-s">♠</span><span class="mc-b">10<br>♠</span></div></div></div>
+        <div class="hand-row" style="--hc:rgba(200,168,75,.6)"><div class="hrb">2</div><div class="hinfo"><div class="hname">Straight Flush</div><div class="hprob">0.0014%</div></div><div class="hcards"><div class="mc red"><span>9<br>♥</span><span class="mc-s">♥</span><span class="mc-b">9<br>♥</span></div><div class="mc red"><span>8<br>♥</span><span class="mc-s">♥</span><span class="mc-b">8<br>♥</span></div><div class="mc red"><span>7<br>♥</span><span class="mc-s">♥</span><span class="mc-b">7<br>♥</span></div><div class="mc red"><span>6<br>♥</span><span class="mc-s">♥</span><span class="mc-b">6<br>♥</span></div><div class="mc red"><span>5<br>♥</span><span class="mc-s">♥</span><span class="mc-b">5<br>♥</span></div></div></div>
+        <div class="hand-row" style="--hc:rgba(155,120,55,.65)"><div class="hrb">3</div><div class="hinfo"><div class="hname">Four of a Kind</div><div class="hprob">0.024%</div></div><div class="hcards"><div class="mc blk"><span>K<br>♠</span><span class="mc-s">♠</span><span class="mc-b">K<br>♠</span></div><div class="mc red"><span>K<br>♥</span><span class="mc-s">♥</span><span class="mc-b">K<br>♥</span></div><div class="mc red"><span>K<br>♦</span><span class="mc-s">♦</span><span class="mc-b">K<br>♦</span></div><div class="mc blk"><span>K<br>♣</span><span class="mc-s">♣</span><span class="mc-b">K<br>♣</span></div><div class="mc blk"><span>3<br>♠</span><span class="mc-s">♠</span><span class="mc-b">3<br>♠</span></div></div></div>
+        <div class="hand-row" style="--hc:rgba(110,90,180,.55)"><div class="hrb">4</div><div class="hinfo"><div class="hname">Full House</div><div class="hprob">0.144%</div></div><div class="hcards"><div class="mc blk"><span>Q<br>♠</span><span class="mc-s">♠</span><span class="mc-b">Q<br>♠</span></div><div class="mc red"><span>Q<br>♥</span><span class="mc-s">♥</span><span class="mc-b">Q<br>♥</span></div><div class="mc red"><span>Q<br>♦</span><span class="mc-s">♦</span><span class="mc-b">Q<br>♦</span></div><div class="mc blk"><span>7<br>♠</span><span class="mc-s">♠</span><span class="mc-b">7<br>♠</span></div><div class="mc red"><span>7<br>♥</span><span class="mc-s">♥</span><span class="mc-b">7<br>♥</span></div></div></div>
+        <div class="hand-row" style="--hc:rgba(35,155,95,.5)"><div class="hrb">5</div><div class="hinfo"><div class="hname">Flush</div><div class="hprob">0.197%</div></div><div class="hcards"><div class="mc blk"><span>A<br>♣</span><span class="mc-s">♣</span><span class="mc-b">A<br>♣</span></div><div class="mc blk"><span>J<br>♣</span><span class="mc-s">♣</span><span class="mc-b">J<br>♣</span></div><div class="mc blk"><span>8<br>♣</span><span class="mc-s">♣</span><span class="mc-b">8<br>♣</span></div><div class="mc blk"><span>5<br>♣</span><span class="mc-s">♣</span><span class="mc-b">5<br>♣</span></div><div class="mc blk"><span>2<br>♣</span><span class="mc-s">♣</span><span class="mc-b">2<br>♣</span></div></div></div>
+        <div class="hand-row" style="--hc:rgba(35,120,185,.48)"><div class="hrb">6</div><div class="hinfo"><div class="hname">Straight</div><div class="hprob">0.392%</div></div><div class="hcards"><div class="mc blk"><span>8<br>♠</span><span class="mc-s">♠</span><span class="mc-b">8<br>♠</span></div><div class="mc red"><span>7<br>♥</span><span class="mc-s">♥</span><span class="mc-b">7<br>♥</span></div><div class="mc red"><span>6<br>♦</span><span class="mc-s">♦</span><span class="mc-b">6<br>♦</span></div><div class="mc blk"><span>5<br>♣</span><span class="mc-s">♣</span><span class="mc-b">5<br>♣</span></div><div class="mc blk"><span>4<br>♠</span><span class="mc-s">♠</span><span class="mc-b">4<br>♠</span></div></div></div>
+        <div class="hand-row" style="--hc:rgba(195,95,55,.42)"><div class="hrb">7</div><div class="hinfo"><div class="hname">Three of a Kind</div><div class="hprob">2.11%</div></div><div class="hcards"><div class="mc blk"><span>J<br>♠</span><span class="mc-s">♠</span><span class="mc-b">J<br>♠</span></div><div class="mc red"><span>J<br>♥</span><span class="mc-s">♥</span><span class="mc-b">J<br>♥</span></div><div class="mc red"><span>J<br>♦</span><span class="mc-s">♦</span><span class="mc-b">J<br>♦</span></div><div class="mc blk"><span>9<br>♠</span><span class="mc-s">♠</span><span class="mc-b">9<br>♠</span></div><div class="mc blk"><span>4<br>♣</span><span class="mc-s">♣</span><span class="mc-b">4<br>♣</span></div></div></div>
+        <div class="hand-row" style="--hc:rgba(175,75,75,.38)"><div class="hrb">8</div><div class="hinfo"><div class="hname">Two Pair</div><div class="hprob">4.75%</div></div><div class="hcards"><div class="mc blk"><span>A<br>♠</span><span class="mc-s">♠</span><span class="mc-b">A<br>♠</span></div><div class="mc red"><span>A<br>♦</span><span class="mc-s">♦</span><span class="mc-b">A<br>♦</span></div><div class="mc blk"><span>6<br>♠</span><span class="mc-s">♠</span><span class="mc-b">6<br>♠</span></div><div class="mc red"><span>6<br>♥</span><span class="mc-s">♥</span><span class="mc-b">6<br>♥</span></div><div class="mc blk"><span>K<br>♣</span><span class="mc-s">♣</span><span class="mc-b">K<br>♣</span></div></div></div>
+        <div class="hand-row" style="--hc:rgba(110,110,110,.3)"><div class="hrb">9</div><div class="hinfo"><div class="hname">One Pair</div><div class="hprob">42.3%</div></div><div class="hcards"><div class="mc blk"><span>10<br>♠</span><span class="mc-s">♠</span><span class="mc-b">10<br>♠</span></div><div class="mc red"><span>10<br>♦</span><span class="mc-s">♦</span><span class="mc-b">10<br>♦</span></div><div class="mc blk"><span>A<br>♠</span><span class="mc-s">♠</span><span class="mc-b">A<br>♠</span></div><div class="mc red"><span>K<br>♥</span><span class="mc-s">♥</span><span class="mc-b">K<br>♥</span></div><div class="mc blk"><span>3<br>♣</span><span class="mc-s">♣</span><span class="mc-b">3<br>♣</span></div></div></div>
+        <div class="hand-row" style="--hc:rgba(75,75,75,.25)"><div class="hrb">—</div><div class="hinfo"><div class="hname">High Card</div><div class="hprob">50.1%</div></div><div class="hcards"><div class="mc blk"><span>A<br>♠</span><span class="mc-s">♠</span><span class="mc-b">A<br>♠</span></div><div class="mc red"><span>J<br>♦</span><span class="mc-s">♦</span><span class="mc-b">J<br>♦</span></div><div class="mc blk"><span>9<br>♠</span><span class="mc-s">♠</span><span class="mc-b">9<br>♠</span></div><div class="mc red"><span>6<br>♥</span><span class="mc-s">♥</span><span class="mc-b">6<br>♥</span></div><div class="mc blk"><span>2<br>♣</span><span class="mc-s">♣</span><span class="mc-b">2<br>♣</span></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ ABOUT MODAL ═══════════ -->
+<div id="aov" onclick="maybeClose(event)">
+  <div class="acard">
+    <button class="acls" onclick="closeAbout()">✕</button>
+    <div class="atag">♣ About this project</div>
+    <div class="atitle">Poker Probability<br>Simulator</div>
+    <p class="adesc">
+      This project demonstrates how <strong>probability is not fixed</strong> — it evolves with information. Using Monte Carlo simulation, the system generates thousands of possible outcomes at each stage of a poker game to estimate real-time winning chances.<br><br>
+      What makes poker a powerful analytical model is uncertainty. A single card can completely reverse the expected outcome — a dominant hand can suddenly lose, while an underdog can emerge victorious in one moment.<br><br>
+      This simulator visualizes <strong>decision-making under incomplete information</strong>, showing how probabilities dynamically shift across the game.
+    </p>
+    <p style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);letter-spacing:.06em;margin-bottom:1.6rem;border-left:2px solid rgba(200,168,75,.35);padding-left:.9rem;line-height:1.6;">A probabilistic system where outcomes are not predicted — but simulated.</p>
+    <div style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--gold2);margin-bottom:.9rem;">Game Dynamics — How Outcomes Flip</div>
+    <div class="dyn-block"><div class="dyn-title">Instant Flip</div><div class="dyn-body">You hold trip Queens, but an opponent completes an inside straight on the river, reversing the outcome instantly.</div></div>
+    <div class="dyn-block"><div class="dyn-title">Close Fight</div><div class="dyn-body">Both players make four-of-a-kind from the board, where the smallest difference determines the winner.</div></div>
+    <div class="dyn-block"><div class="dyn-title">Domination</div><div class="dyn-body">Pocket Aces versus a weak starting hand demonstrates near-certain probability before community cards appear.</div></div>
+    <div class="dyn-block"><div class="dyn-title">Underdog Wins</div><div class="dyn-body">Even the weakest starting hand can win, showing how low-probability events still occur.</div></div>
+    <p style="font-family:'DM Mono',monospace;font-size:.68rem;color:rgba(200,168,75,.5);letter-spacing:.04em;padding-top:1rem;border-top:1px solid rgba(255,255,255,.06);">
+      Made by Kavya Shah — <a href="https://in.linkedin.com/in/kavyashah911" target="_blank" style="color:rgba(200,168,75,.7);text-decoration:none;">linkedin.com/in/kavyashah911</a>
+    </p>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   FLOATING CARDS BACKGROUND
+═══════════════════════════════════════════ */
+(function(){
+  const suits=[['♠','black'],['♥','#bf3929'],['♦','#bf3929'],['♣','black']];
+  const ranks=['2','5','7','9','J','Q','K','A','10'];
+  const bg=document.getElementById('fcbg');
+  for(let i=0;i<55;i++){
+    const d=document.createElement('div');
+    const isFront=Math.random()>.45;
+    d.className='fc '+(isFront?'fc-front':'fc-back');
+    const [s,sc]=suits[i%4];
+    if(isFront){
+      d.style.color=sc;
+      const r=ranks[i%ranks.length];
+      d.innerHTML=`<span>${r}<br>${s}</span><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2rem;opacity:.08">${s}</span><span style="align-self:flex-end;transform:rotate(180deg)">${r}<br>${s}</span>`;
+    } else {
+      d.style.color=`rgba(200,168,75,${.12+Math.random()*.14})`;
+      d.textContent=s;
+    }
+    const dur=5+Math.random()*10, delay=-Math.random()*dur;
+    const op=isFront?0.06+Math.random()*.1:0.05+Math.random()*.12;
+    const r0=(Math.random()*80-40)+'deg', r1=(Math.random()*80-40)+'deg';
+    d.style.cssText+=`left:${Math.random()*97}%;top:${Math.random()*10}vh;animation-duration:${dur}s;animation-delay:${delay}s;--r0:${r0};--r1:${r1};--op:${op}`;
+    bg.appendChild(d);
+  }
+})();
+
+/* ═══════════════════════════════════════════
+   AUDIO SYSTEM
+═══════════════════════════════════════════ */
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let actx=null;
+function getACtx(){if(!actx)actx=new AudioCtx();return actx;}
+
+function playTone(freq,dur,type='sine',vol=0.12,delay=0){
+  try{
+    const ctx=getACtx();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.type=type;osc.frequency.value=freq;
+    gain.gain.setValueAtTime(0,ctx.currentTime+delay);
+    gain.gain.linearRampToValueAtTime(vol,ctx.currentTime+delay+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+dur);
+    osc.start(ctx.currentTime+delay);
+    osc.stop(ctx.currentTime+delay+dur+0.05);
+  }catch(e){}
+}
+
+function playCardDeal(){
+  playTone(800,0.06,'square',0.04);
+  playTone(600,0.05,'square',0.03,0.06);
+}
+
+function playWin(){
+  [[523,0],[659,0.12],[784,0.24],[1047,0.38]].forEach(([f,d])=>playTone(f,0.3,'sine',0.1,d));
+}
+
+function playLoss(){
+  [[300,0],[260,0.15],[220,0.3]].forEach(([f,d])=>playTone(f,0.35,'sine',0.07,d));
+}
+
+function playTie(){
+  playTone(440,0.4,'sine',0.08);
+  playTone(554,0.4,'sine',0.06,0.05);
+}
+
+function playFlip(){
+  playTone(700,0.08,'triangle',0.06);
+  playTone(550,0.1,'triangle',0.05,0.09);
+}
+
+/* ═══════════════════════════════════════════
+   CONFETTI
+═══════════════════════════════════════════ */
+const confCanvas=document.getElementById('confettiCanvas');
+const confCtx=confCanvas.getContext('2d');
+let confParts=[],confActive=false,confAF=null;
+
+function launchConfetti(){
+  confCanvas.width=window.innerWidth;confCanvas.height=window.innerHeight;
+  confCanvas.classList.add('on');
+  confParts=[];
+  const colors=['#c8a84b','#f0d080','#27ae60','#2ecc71','#e8e0d0','#ffffff'];
+  for(let i=0;i<140;i++){
+    confParts.push({
+      x:Math.random()*confCanvas.width,y:-20,
+      vx:(Math.random()-0.5)*5,vy:2+Math.random()*4,
+      r:Math.random()*5+2,color:colors[i%colors.length],
+      rot:Math.random()*360,rv:(Math.random()-0.5)*8,
+      life:1,decay:0.005+Math.random()*0.008
+    });
+  }
+  confActive=true;animConf();
+  setTimeout(()=>{confActive=false;confCanvas.classList.remove('on');},3500);
+}
+
+function animConf(){
+  if(!confActive){confCtx.clearRect(0,0,confCanvas.width,confCanvas.height);return;}
+  confCtx.clearRect(0,0,confCanvas.width,confCanvas.height);
+  confParts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.rot+=p.rv;p.life-=p.decay;p.vy+=0.06;
+    if(p.life<=0)return;
+    confCtx.save();confCtx.globalAlpha=p.life;
+    confCtx.translate(p.x,p.y);confCtx.rotate(p.rot*Math.PI/180);
+    confCtx.fillStyle=p.color;confCtx.fillRect(-p.r,-p.r/2,p.r*2,p.r);
+    confCtx.restore();
+  });
+  requestAnimationFrame(animConf);
+}
+
+/* ═══════════════════════════════════════════
+   DECK ENGINE
+═══════════════════════════════════════════ */
+const SUITS=['♠','♥','♦','♣'],RANKS=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const RV=Object.fromEntries(RANKS.map((r,i)=>[r,i+2]));
+const HNAMES=['High Card','One Pair','Two Pair','Three of a Kind','Straight','Flush','Full House','Four of a Kind','Straight Flush','Royal Flush'];
+
+function buildDeck(){const d=[];for(const s of SUITS)for(const r of RANKS)d.push({r,s});return d;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+function C(r,s){return{r,s};}
+
+/* ═══════════════════════════════════════════
+   HAND EVAL
+═══════════════════════════════════════════ */
+function evalFive(cs){
+  const rv=cs.map(c=>RV[c.r]).sort((a,b)=>b-a);
+  const ss=cs.map(c=>c.s);
+  const flush=ss.every(s=>s===ss[0]);
+  const straight=rv[0]-rv[4]===4&&new Set(rv).size===5;
+  const sA=rv[0]===14&&rv[1]===5&&rv[2]===4&&rv[3]===3&&rv[4]===2;
+  const cnt={};rv.forEach(v=>cnt[v]=(cnt[v]||0)+1);
+  const grp=Object.values(cnt).sort((a,b)=>b-a);
+  if(flush&&straight&&rv[0]===14&&rv[4]===10)return[9,...rv];
+  if(flush&&(straight||sA))return[8,...rv];
+  if(grp[0]===4)return[7,...rv];
+  if(grp[0]===3&&grp[1]===2)return[6,...rv];
+  if(flush)return[5,...rv];
+  if(straight||sA)return[4,...rv];
+  if(grp[0]===3)return[3,...rv];
+  if(grp[0]===2&&grp[1]===2)return[2,...rv];
+  if(grp[0]===2)return[1,...rv];
+  return[0,...rv];
+}
+function bestHand(cs){
+  let best=null;
+  for(let i=0;i<cs.length-4;i++)for(let j=i+1;j<cs.length-3;j++)for(let k=j+1;k<cs.length-2;k++)
+    for(let l=k+1;l<cs.length-1;l++)for(let m=l+1;m<cs.length;m++){
+      const s=evalFive([cs[i],cs[j],cs[k],cs[l],cs[m]]);
+      if(!best||cmp(s,best)>0)best=s;
+    }
+  return best;
+}
+function cmp(a,b){for(let i=0;i<a.length;i++){if(a[i]>b[i])return 1;if(a[i]<b[i])return-1;}return 0;}
+
+/* ═══════════════════════════════════════════
+   MONTE CARLO
+═══════════════════════════════════════════ */
+function monteCarlo(h1,h2,board,N=10000){
+  let w1=0,w2=0,tie=0;
+  const known=[...h1,...h2,...board];
+  const rem=buildDeck().filter(c=>!known.some(k=>k.r===c.r&&k.s===c.s));
+  const need=5-board.length;
+  for(let i=0;i<N;i++){
+    shuffle(rem);const b=[...board,...rem.slice(0,need)];
+    const c1=bestHand([...h1,...b]),c2=bestHand([...h2,...b]);
+    const r=cmp(c1,c2);
+    if(r>0)w1++;else if(r<0)w2++;else tie++;
+  }
+  return{p1:w1/N,p2:w2/N,tie:tie/N};
+}
+
+/* ═══════════════════════════════════════════
+   SCENARIOS
+═══════════════════════════════════════════ */
+const SCENARIO_VARIANTS=[
+  null,
+  [
+    {p1:[C('2','♣'),C('7','♦')],p2:[C('A','♠'),C('K','♠')],comm:[C('2','♠'),C('7','♠'),C('K','♦'),C('2','♥'),C('7','♥')]},
+    {p1:[C('5','♣'),C('6','♦')],p2:[C('J','♠'),C('J','♥')],comm:[C('3','♦'),C('4','♠'),C('7','♥'),C('J','♦'),C('8','♣')]},
+    {p1:[C('4','♥'),C('8','♦')],p2:[C('A','♣'),C('K','♦')],comm:[C('4','♠'),C('8','♠'),C('K','♥'),C('2','♣'),C('9','♦')]},
+  ],
+  [
+    {p1:[C('Q','♠'),C('Q','♥')],p2:[C('J','♦'),C('10','♣')],comm:[C('K','♠'),C('9','♥'),C('3','♦'),C('Q','♣'),C('8','♠')]},
+    {p1:[C('A','♣'),C('K','♣')],p2:[C('7','♥'),C('8','♥')],comm:[C('A','♠'),C('K','♦'),C('4','♥'),C('9','♥'),C('2','♥')]},
+    {p1:[C('K','♠'),C('K','♦')],p2:[C('9','♦'),C('10','♦')],comm:[C('K','♥'),C('2','♣'),C('8','♠'),C('J','♦'),C('7','♣')]},
+  ],
+  [
+    {p1:[C('K','♠'),C('K','♥')],p2:[C('A','♦'),C('A','♣')],comm:[C('K','♦'),C('A','♠'),C('K','♣'),C('A','♥'),C('5','♠')]},
+    {p1:[C('A','♠'),C('J','♠')],p2:[C('K','♠'),C('Q','♠')],comm:[C('2','♠'),C('5','♠'),C('9','♠'),C('4','♦'),C('7','♣')]},
+    {p1:[C('A','♠'),C('K','♦')],p2:[C('A','♥'),C('Q','♣')],comm:[C('A','♦'),C('7','♠'),C('2','♥'),C('9','♣'),C('4','♦')]},
+  ],
+  [
+    {p1:[C('A','♠'),C('A','♥')],p2:[C('2','♦'),C('7','♣')],comm:[]},
+    {p1:[C('A','♣'),C('K','♣')],p2:[C('J','♦'),C('2','♠')],comm:[]},
+    {p1:[C('K','♥'),C('K','♦')],p2:[C('3','♣'),C('4','♦')],comm:[C('5','♠'),C('6','♥'),C('2','♦'),C('K','♠'),C('J','♣')]},
+  ],
+  [
+    {p1:[C('2','♠'),C('3','♥')],p2:[C('2','♦'),C('4','♣')],comm:[C('5','♦'),C('6','♠'),C('7','♣'),C('8','♥'),C('9','♦')]},
+    {p1:[C('2','♣'),C('4','♦')],p2:[C('3','♠'),C('5','♥')],comm:[C('A','♥'),C('K','♥'),C('Q','♥'),C('J','♥'),C('10','♥')]},
+    {p1:[C('2','♣'),C('3','♦')],p2:[C('4','♠'),C('6','♥')],comm:[C('A','♠'),C('A','♥'),C('A','♦'),C('K','♠'),C('K','♦')]},
+  ]
+];
+
+/* ═══════════════════════════════════════════
+   GAME STATE
+═══════════════════════════════════════════ */
+let deck=[],p1=[],p2=[],comm=[],scenarioBoard=[],stage=0,p1f=false,gover=false,chosenSc=0;
+const BET=10,POT=20;
+
+// Enhanced prob history
+let probHistory=[];
+// {p1,p2,tie,stage,p1HandRank,p2HandRank,p1HandName,p2HandName,explanation,eventType,confidenceScore}
+
+/* ═══════════════════════════════════════════
+   INSIGHT / EXPLANATION ENGINE
+═══════════════════════════════════════════ */
+function getHandStrengthLabel(rank){
+  if(rank>=8)return'elite';if(rank>=6)return'strong';if(rank>=4)return'medium';if(rank>=2)return'decent';return'weak';
+}
+
+function generateInsight(pr,stageLabel,prevEntry){
+  if(!prevEntry){
+    const fav=pr.p1>0.65?'Your hand has a <strong>clear pre-flop advantage</strong>.':
+              pr.p1<0.35?'You are an <strong>underdog pre-flop</strong> — the board can still turn things.':
+              'The pre-flop odds are <strong>roughly even</strong> — community cards will decide this.';
+    return{text:fav,type:'neutral'};
+  }
+  const shift=pr.p1-prevEntry.p1;
+  const absShift=Math.abs(shift);
+  const p1Improved=pr.p1HandRank!==undefined&&prevEntry.p1HandRank!==undefined&&pr.p1HandRank>prevEntry.p1HandRank;
+  const p2Improved=pr.p2HandRank!==undefined&&prevEntry.p2HandRank!==undefined&&pr.p2HandRank>prevEntry.p2HandRank;
+  const p1HN=HNAMES[pr.p1HandRank||0],p2HN=HNAMES[pr.p2HandRank||0];
+  const prevP1HN=prevEntry.p1HandName||'',prevP2HN=prevEntry.p2HandName||'';
+  let text='',type='neutral';
+
+  if(absShift>0.25){
+    type=shift>0?'positive':'negative';
+    if(shift>0)text=`<strong>Major swing in your favour</strong> (+${(shift*100).toFixed(0)}%) — the board dramatically improved your position.`;
+    else text=`<strong>Probability reversed sharply</strong> (${(shift*100).toFixed(0)}%) — this card significantly strengthened the opponent.`;
+  } else if(p1Improved&&p2Improved){
+    type='neutral';
+    text=`<strong>Both players improved</strong> — you made ${p1HN}, opponent made ${p2HN}. The hand difference determines everything now.`;
+  } else if(p1Improved){
+    type='positive';
+    text=prevP1HN!==p1HN?`<strong>You improved:</strong> ${prevP1HN} → ${p1HN}. Your odds increased +${(shift*100).toFixed(0)}%.`:`Your ${p1HN} <strong>strengthened</strong> with the new card.`;
+  } else if(p2Improved){
+    type='negative';
+    text=prevP2HN!==p2HN?`<strong>Opponent improved:</strong> ${prevP2HN} → ${p2HN}. Their odds rose +${((pr.p2-prevEntry.p2)*100).toFixed(0)}%.`:`Opponent's ${p2HN} <strong>strengthened</strong> — watch out.`;
+  } else if(absShift<0.04){
+    text=`Minimal change (${shift>=0?'+':''}${(shift*100).toFixed(1)}%). The board <strong>didn't significantly help either player</strong>.`;
+  } else {
+    text=shift>0?`Slight shift your way (+${(shift*100).toFixed(1)}%) — board favours your hand structure.`:`Opponent gained slight ground (+${((pr.p2-prevEntry.p2)*100).toFixed(1)}%) — stay attentive.`;
+  }
+  return{text,type};
+}
+
+function showInsight(text){
+  const bar=document.getElementById('insightBar');
+  const el=document.getElementById('insightText');
+  el.innerHTML=text;
+  bar.classList.remove('on');
+  void bar.offsetWidth;
+  bar.classList.add('on');
+}
+
+/* ═══════════════════════════════════════════
+   CARD HTML
+═══════════════════════════════════════════ */
+function cardH(c,delay=0){
+  const isRed=c.s==='♥'||c.s==='♦';
+  return`<div class="card ${isRed?'red':'black'} da" style="animation-delay:${delay}ms"><span>${c.r}<br>${c.s}</span><span class="csym">${c.s}</span><span class="cbot">${c.r}<br>${c.s}</span></div>`;
+}
+function commCardH(c,delay=0){
+  const isRed=c.s==='♥'||c.s==='♦';
+  const rot=(Math.random()*14-7).toFixed(1)+'deg';
+  return`<div class="card ${isRed?'red':'black'} comm-da" style="animation-delay:${delay}ms;--crot:${rot}"><span>${c.r}<br>${c.s}</span><span class="csym">${c.s}</span><span class="cbot">${c.r}<br>${c.s}</span></div>`;
+}
+const empty=()=>`<div class="card empty"></div>`;
+
+function resCardH(c,delay=0){
+  const isRed=c.s==='♥'||c.s==='♦';
+  return`<div class="res-card ${isRed?'red':'black'}" style="animation-delay:${delay}ms"><span>${c.r}<br>${c.s}</span><span class="rcs">${c.s}</span><span class="rcb">${c.r}<br>${c.s}</span></div>`;
+}
+
+function renderComm(animate=false,animateFrom=0){
+  const el=document.getElementById('cc'),slots=[];
+  for(let i=0;i<5;i++){
+    if(i<comm.length){
+      slots.push(animate&&i>=animateFrom?commCardH(comm[i],(i-animateFrom)*90):commCardH(comm[i],0));
+    } else slots.push(empty());
+  }
+  el.innerHTML=slots.join('');
+}
+
+/* ═══════════════════════════════════════════
+   PROBABILITY HELPERS
+═══════════════════════════════════════════ */
+function setProbs(pr){
+  document.getElementById('p1w').textContent=(pr.p1*100).toFixed(1)+'%';
+  document.getElementById('p1t').textContent=(pr.tie*100).toFixed(1)+'%';
+  document.getElementById('p2w').textContent=(pr.p2*100).toFixed(1)+'%';
+  document.getElementById('p2t').textContent=(pr.tie*100).toFixed(1)+'%';
+  document.getElementById('ps1').style.setProperty('--fill',(pr.p1*100).toFixed(0)+'%');
+  document.getElementById('ps2').style.setProperty('--fill',(pr.p2*100).toFixed(0)+'%');
+  // EV
+  const ev=(pr.p1*POT)-(pr.p2*BET);
+  const evEl=document.getElementById('evDisplay');
+  evEl.textContent=`EV: ${ev>=0?'+':''}${ev.toFixed(2)} (pot=${POT}, bet=${BET})`;
+  evEl.style.color=ev>=0?'rgba(39,174,96,.75)':'rgba(231,76,60,.7)';
+}
+
+function trackProb(pr,stageLabel,p1HandRank,p2HandRank,explanation,eventType){
+  const entry={
+    p1:pr.p1,p2:pr.p2,tie:pr.tie,
+    stage:stageLabel,
+    p1HandRank:p1HandRank||0,p2HandRank:p2HandRank||0,
+    p1HandName:HNAMES[p1HandRank||0],p2HandName:HNAMES[p2HandRank||0],
+    explanation:explanation||'',
+    eventType:eventType||'neutral',
+    confidenceScore:Math.round((1-pr.tie)*100)
+  };
+  probHistory.push(entry);
+  return entry;
+}
+
+/* ═══════════════════════════════════════════
+   PROB GRAPH WITH TOOLTIP
+═══════════════════════════════════════════ */
+const canvas=document.getElementById('probCanvas');
+const gTooltip=document.getElementById('graphTooltip');
+let hovIdx=-1;
+
+function drawGraph(){
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  if(!probHistory.length)return;
+
+  // grid
+  ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=H*0.06+i*(H*0.88/4);
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+  }
+
+  const N=probHistory.length,xStep=N>1?W/(N-1):W;
+  const yFor=v=>H*0.06+(1-v)*(H*0.88);
+  const pts1=probHistory.map((pt,i)=>({x:N>1?i*xStep:W/2,y:yFor(pt.p1)}));
+  const pts2=probHistory.map((pt,i)=>({x:N>1?i*xStep:W/2,y:yFor(pt.p2)}));
+
+  function drawCurve(pts,color,glowColor){
+    // glow pass
+    ctx.save();ctx.globalAlpha=.15;
+    ctx.strokeStyle=glowColor;ctx.lineWidth=8;ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.stroke();ctx.restore();
+    // gradient fill under curve
+    if(pts.length>1){
+      const grad=ctx.createLinearGradient(0,0,0,H);
+      grad.addColorStop(0,glowColor.replace('1)','0.18)'));
+      grad.addColorStop(1,glowColor.replace('1)','0)'));
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x,H);
+      pts.forEach(p=>ctx.lineTo(p.x,p.y));
+      ctx.lineTo(pts[pts.length-1].x,H);
+      ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+    }
+    // main line
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2.2;ctx.lineJoin='round';ctx.lineCap='round';
+    pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+    // dots
+    pts.forEach((p,i)=>{
+      ctx.beginPath();ctx.arc(p.x,p.y,i===hovIdx?6:4,0,Math.PI*2);
+      ctx.fillStyle=i===hovIdx?glowColor:color;ctx.fill();
+      if(i===hovIdx){ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.5;ctx.stroke();}
+    });
+  }
+
+  // hover vertical line
+  if(hovIdx>=0&&hovIdx<N){
+    const hx=N>1?hovIdx*xStep:W/2;
+    ctx.strokeStyle='rgba(200,168,75,.2)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(hx,0);ctx.lineTo(hx,H-12);ctx.stroke();ctx.setLineDash([]);
+  }
+
+  drawCurve(pts2,'rgba(41,128,185,.95)','rgba(41,128,185,1)');
+  drawCurve(pts1,'rgba(39,174,96,.95)','rgba(39,174,96,1)');
+
+  // x labels
+  ctx.font='9px DM Mono,monospace';ctx.fillStyle='rgba(200,168,75,.45)';ctx.textAlign='center';
+  probHistory.forEach((pt,i)=>ctx.fillText(pt.stage,N>1?i*xStep:W/2,H-2));
+  // y labels
+  ctx.textAlign='right';ctx.fillStyle='rgba(200,168,75,.3)';
+  ['100%','75%','50%','25%','0%'].forEach((l,i)=>ctx.fillText(l,W-2,H*0.06+i*(H*0.88/4)+3));
+}
+
+function getCanvasX(e){
+  const rect=canvas.getBoundingClientRect();
+  return(e.clientX-rect.left)*(canvas.width/rect.width);
+}
+
+canvas.addEventListener('mousemove',e=>{
+  if(!probHistory.length)return;
+  const N=probHistory.length,W=canvas.width;
+  const xStep=N>1?W/(N-1):W;
+  const mx=getCanvasX(e);
+  let best=-1,bestDist=Infinity;
+  probHistory.forEach((_,i)=>{
+    const px=N>1?i*xStep:W/2;
+    const d=Math.abs(mx-px);
+    if(d<bestDist){bestDist=d;best=i;}
+  });
+  if(best!==hovIdx){hovIdx=best;drawGraph();}
+  // tooltip
+  if(best>=0&&bestDist<60){
+    const pt=probHistory[best];
+    const rect=document.getElementById('graphWrap').getBoundingClientRect();
+    const canRect=canvas.getBoundingClientRect();
+    let lx=(N>1?best*xStep:W/2)/(W)*canRect.width+canRect.left-rect.left;
+    const ly=canRect.top-rect.top+20;
+    if(lx+185>rect.width)lx-=190;else lx+=12;
+    gTooltip.style.left=lx+'px';gTooltip.style.top=ly+'px';
+    gTooltip.style.opacity='1';
+    gTooltip.innerHTML=`
+      <div class="tt-stage">${pt.stage}</div>
+      <div class="tt-row"><span>You</span><span class="tt-val" style="color:rgba(39,174,96,.95)">${(pt.p1*100).toFixed(1)}%</span></div>
+      <div class="tt-row"><span>Opponent</span><span class="tt-val" style="color:rgba(41,128,185,.95)">${(pt.p2*100).toFixed(1)}%</span></div>
+      <div class="tt-row"><span>Tie</span><span class="tt-val">${(pt.tie*100).toFixed(1)}%</span></div>
+      ${pt.p1HandName?`<div class="tt-row" style="margin-top:.25rem"><span>Your hand</span><span class="tt-val">${pt.p1HandName}</span></div>`:''}
+      ${pt.p2HandName&&pt.p2HandName!=='High Card'||pt.stage==='River'?`<div class="tt-row"><span>Opp. hand</span><span class="tt-val">${pt.p2HandName}</span></div>`:''}
+      ${pt.explanation?`<div class="tt-insight">${pt.explanation.replace(/<[^>]+>/g,'')}</div>`:''}
+    `;
+  }
+});
+
+canvas.addEventListener('mouseleave',()=>{
+  hovIdx=-1;drawGraph();
+  gTooltip.style.opacity='0';
+});
+
+/* ═══════════════════════════════════════════
+   SCENARIO MANAGEMENT
+═══════════════════════════════════════════ */
+function pickScenario(n){
+  chosenSc=n;
+  document.querySelectorAll('.sc-btn').forEach((b,i)=>b.classList.toggle('act',i===n));
+  newHand();
+}
+
+function removeFromDeck(cards){
+  cards.forEach(c=>{const idx=deck.findIndex(d=>d.r===c.r&&d.s===c.s);if(idx>=0)deck.splice(idx,1);});
+}
+
+function getScenarioVariant(n){
+  if(n===0||!SCENARIO_VARIANTS[n])return null;
+  const v=SCENARIO_VARIANTS[n];
+  return v[Math.floor(Math.random()*v.length)];
+}
+
+/* ═══════════════════════════════════════════
+   NEW HAND
+═══════════════════════════════════════════ */
+function newHand(){
+  p1f=false;gover=false;stage=0;probHistory=[];scenarioBoard=[];hovIdx=-1;
+  deck=shuffle(buildDeck());
+  const sc=getScenarioVariant(chosenSc);
+  if(!sc){p1=deck.splice(0,2);p2=deck.splice(0,2);comm=[];}
+  else{p1=[...sc.p1];p2=[...sc.p2];scenarioBoard=[...sc.comm];comm=[];removeFromDeck([...p1,...p2,...scenarioBoard]);}
+
+  document.getElementById('zP1').classList.remove('folded');
+  document.getElementById('zP2').classList.remove('folded');
+  document.getElementById('fb1').classList.remove('on');
+  document.getElementById('fb2').classList.remove('on');
+  document.getElementById('resBox').classList.remove('on');
+  document.getElementById('insightBar').classList.remove('on');
+  document.getElementById('lossOverlay').classList.remove('on');
+
+  document.getElementById('p1c').innerHTML=p1.map((c,i)=>cardH(c,i*110)).join('');
+  document.getElementById('p2c').innerHTML=p2.map((c,i)=>cardH(c,i*110)).join('');
+  renderComm();
+  setSt('Pre-flop — Hole cards dealt');
+  setPot('Call / Raise to see the Flop');
+  document.getElementById('bCall').textContent='✓ Call / Raise → Flop';
+  enAct(true);
+
+  const pr=monteCarlo(p1,p2,[]);
+  setProbs(pr);
+  const ins=generateInsight(pr,'Pre-flop',null);
+  const entry=trackProb(pr,'Pre-flop',undefined,undefined,ins.text,ins.type);
+  showInsight(ins.text);
+  drawGraph();
+  playCardDeal();
+}
+
+/* ═══════════════════════════════════════════
+   GAME STAGES
+═══════════════════════════════════════════ */
+function doNext(){
+  if(gover)return;
+  stage++;
+  if(stage===1)dealFlop();
+  else if(stage===2)dealTurn();
+  else if(stage===3)dealRiver();
+}
+
+function dealFlop(){
+  if(scenarioBoard.length>=3)comm=[scenarioBoard[0],scenarioBoard[1],scenarioBoard[2]];
+  else comm=deck.splice(0,3);
+  renderComm(true,0);
+  setSt('Flop — 3 community cards revealed');setPot('Flop is out — Call or Fold?');
+  document.getElementById('bCall').textContent='✓ Call / Raise → Turn';
+  const pr=monteCarlo(p1,p2,comm);setProbs(pr);
+  const p1h=bestHand([...p1,...comm]),p2h=bestHand([...p2,...comm]);
+  const prev=probHistory[probHistory.length-1];
+  const ins=generateInsight({...pr,p1HandRank:p1h[0],p2HandRank:p2h[0]},'Flop',prev);
+  trackProb(pr,'Flop',p1h[0],p2h[0],ins.text,ins.type);
+  showInsight(ins.text);drawGraph();playCardDeal();
+  if(Math.abs(pr.p1-prev.p1)>0.2)playFlip();
+}
+
+function dealTurn(){
+  if(scenarioBoard.length>=4)comm=[scenarioBoard[0],scenarioBoard[1],scenarioBoard[2],scenarioBoard[3]];
+  else comm.push(...deck.splice(0,1));
+  renderComm(true,3);
+  setSt('Turn — 4th card revealed');setPot('Turn is out — Call or Fold?');
+  document.getElementById('bCall').textContent='✓ Call / Raise → River';
+  const pr=monteCarlo(p1,p2,comm);setProbs(pr);
+  const p1h=bestHand([...p1,...comm]),p2h=bestHand([...p2,...comm]);
+  const prev=probHistory[probHistory.length-1];
+  const ins=generateInsight({...pr,p1HandRank:p1h[0],p2HandRank:p2h[0]},'Turn',prev);
+  trackProb(pr,'Turn',p1h[0],p2h[0],ins.text,ins.type);
+  showInsight(ins.text);drawGraph();playCardDeal();
+  if(Math.abs(pr.p1-prev.p1)>0.2)playFlip();
+}
+
+function dealRiver(){
+  if(scenarioBoard.length>=5)comm=[...scenarioBoard];
+  else comm.push(...deck.splice(0,1));
+  renderComm(true,4);
+  setSt('River — Final card! Showdown incoming…');setPot('All 5 community cards revealed');
+  enAct(false);
+  const pr=monteCarlo(p1,p2,comm);setProbs(pr);
+  const p1h=bestHand([...p1,...comm]),p2h=bestHand([...p2,...comm]);
+  const prev=probHistory[probHistory.length-1];
+  const ins=generateInsight({...pr,p1HandRank:p1h[0],p2HandRank:p2h[0]},'River',prev);
+  trackProb(pr,'River',p1h[0],p2h[0],ins.text,ins.type);
+  showInsight(ins.text);drawGraph();playCardDeal();
+  if(Math.abs(pr.p1-prev.p1)>0.2)playFlip();
+  setTimeout(()=>revealShowdown(),430);
+}
+
+/* ═══════════════════════════════════════════
+   FOLD
+═══════════════════════════════════════════ */
+async function doFold(){
+  if(gover)return;
+  p1f=true;gover=true;
+  document.getElementById('zP1').classList.add('folded');
+  document.getElementById('fb1').classList.add('on');
+  enAct(false);
+  while(comm.length<5){
+    await sleep(900);
+    if(scenarioBoard.length>=5){
+      const needed=comm.length<3?3:comm.length+1;
+      comm=scenarioBoard.slice(0,Math.min(needed,5));
+    } else {
+      comm.length<3?comm.push(...deck.splice(0,3)):comm.push(...deck.splice(0,1));
+    }
+    renderComm(true,comm.length-(comm.length<3?3:1));
+    const sn=['','Flop','Flop','Flop','Turn','River'];
+    setSt(sn[comm.length]+' (game continuing after fold…)');
+  }
+  await sleep(500);
+  // reveal opponent
+  document.getElementById('p2c').innerHTML=p2.map((c,i)=>cardH(c,i*100)).join('');
+  const h2=bestHand([...p2,...comm]);
+  const pr={p1:0,p2:1,tie:0};
+  setProbs(pr);trackProb(pr,'Fold',0,h2[0],'You folded — opponent wins by default.','negative');
+  drawGraph();playLoss();
+  document.getElementById('lossOverlay').classList.add('on');
+  showResultCards();
+  showResult('Opponent Wins','You folded — opponent claims the pot',
+    `<strong>You chose to fold</strong>, surrendering the hand. The opponent wins by default. Their best hand was <strong>${HNAMES[h2[0]]}</strong>. In poker, knowing <em>when</em> to fold is as important as knowing when to bet — but this time, the board might have been more interesting than you thought.`);
+  setSt('Hand over — you folded');
+}
+
+/* ═══════════════════════════════════════════
+   SHOWDOWN
+═══════════════════════════════════════════ */
+function revealShowdown(){
+  // table glow
+  const tbl=document.querySelector('.ptable');
+  tbl.style.boxShadow='0 0 0 3px #050c07,0 28px 80px rgba(0,0,0,.9),inset 0 0 90px rgba(0,0,0,.45),0 0 60px rgba(200,168,75,.22)';
+  setTimeout(()=>tbl.style.boxShadow='',1800);
+
+  // ensure 5 community cards
+  if(comm.length<5){const extra=deck.splice(0,5-comm.length);comm=[...comm,...extra];renderComm();}
+
+  // reveal opponent
+  document.getElementById('p2c').innerHTML=p2.map((c,i)=>cardH(c,i*100)).join('');
+
+  const h1=bestHand([...p1,...comm]),h2=bestHand([...p2,...comm]);
+  const r=cmp(h1,h2);
+  const n1=HNAMES[h1[0]],n2=HNAMES[h2[0]];
+  let rt,rs,rex,winner=null;
+
+  if(r>0){
+    setProbs({p1:1,p2:0,tie:0});
+    trackProb({p1:1,p2:0,tie:0},'Showdown',h1[0],h2[0],`You win with ${n1}.`,'positive');
+    rt='🏆 You Win!';rs=`Your ${n1} defeats their ${n2}`;
+    rex=buildExplain(p1,p2,comm,h1,h2,'p1',n1,n2);winner='p1';
+    setTimeout(()=>{launchConfetti();playWin();},200);
+  } else if(r<0){
+    setProbs({p1:0,p2:1,tie:0});
+    trackProb({p1:0,p2:1,tie:0},'Showdown',h1[0],h2[0],`Opponent wins with ${n2}.`,'negative');
+    rt='Opponent Wins';rs=`Their ${n2} defeats your ${n1}`;
+    rex=buildExplain(p1,p2,comm,h1,h2,'p2',n1,n2);
+    document.getElementById('lossOverlay').classList.add('on');
+    setTimeout(()=>playLoss(),300);
+  } else {
+    setProbs({p1:0,p2:0,tie:1});
+    trackProb({p1:0,p2:0,tie:1},'Showdown',h1[0],h2[0],'Split pot — both players tied.','neutral');
+    rt='Split Pot — Tie!';rs=`Both players hold ${n1}`;
+    rex=`<strong>Identical hand strength!</strong> Both players made a <strong>${n1}</strong>. The pot is split equally. This happens when the best 5-card combination uses mostly community cards, or kickers match exactly.`;
+    setTimeout(()=>playTie(),200);
+  }
+
+  if(winner){
+    const zId=winner==='p1'?'p1c':'p2c';
+    setTimeout(()=>document.querySelectorAll(`#${zId} .card`).forEach(el=>el.classList.add('winner-glow')),300);
+  }
+
+  drawGraph();showResultCards();
+  showResult(rt,rs,rex);
+  gover=true;setSt('Showdown complete!');
+}
+
+/* ═══════════════════════════════════════════
+   RESULT CARDS
+═══════════════════════════════════════════ */
+function showResultCards(){
+  const sec=document.getElementById('resCards');
+  let html='';
+  html+=`<div class="res-player-block"><div class="res-player-lbl">You · Player 1</div><div class="res-crow">${p1.map((c,i)=>resCardH(c,i*80)).join('')}</div></div>`;
+  html+=`<div class="res-player-block"><div class="res-player-lbl">Community</div><div class="res-crow">${comm.map((c,i)=>resCardH(c,i*60+160)).join('')}</div></div>`;
+  html+=`<div class="res-player-block"><div class="res-player-lbl">Opponent · Player 2</div><div class="res-crow">${p2.map((c,i)=>resCardH(c,i*80+480)).join('')}</div></div>`;
+  sec.innerHTML=html;
+}
+
+/* ═══════════════════════════════════════════
+   BUILD EXPLAIN
+═══════════════════════════════════════════ */
+function buildExplain(p1,p2,comm,h1,h2,winner,n1,n2){
+  const cstr=comm.map(c=>c.r+c.s).join(' ');
+  const p1str=p1.map(c=>c.r+c.s).join(' ');
+  const p2str=p2.map(c=>c.r+c.s).join(' ');
+  const loseName=winner==='p1'?n2:n1;
+  const winName=winner==='p1'?n1:n2;
+  const whoWon=winner==='p1'?'You':'Opponent';
+  const whoLost=winner==='p1'?'Opponent':'You';
+  let explain='';
+  if(winName===loseName){
+    explain=`<strong>${whoWon}</strong> wins with a <strong>${winName}</strong> — but so does ${whoLost}! This was a <strong>kicker battle</strong>: both players made the same hand type, but ${whoWon}'s supporting cards were higher. These are the closest and most dramatic decisions in poker.`;
+  } else if(h1[0]>=6&&h2[0]>=6){
+    explain=`Both players made <strong>premium hands</strong> — ${winner==='p1'?'You':'Opponent'} with <strong>${winName}</strong> and ${winner==='p1'?'Opponent':'You'} with <strong>${loseName}</strong>. When two strong hands collide, the higher rank wins outright. The board <em>${cstr}</em> created the perfect battleground.`;
+  } else if(h1[0]<=1||h2[0]<=1){
+    explain=`<strong>${whoWon}</strong> wins with <strong>${winName}</strong>. ${whoLost} could only make <strong>${loseName}</strong> — unable to connect meaningfully with the board <em>${cstr}</em>. Player 1 held <em>${p1str}</em>, Player 2 held <em>${p2str}</em>. Sometimes the community cards simply don't help one player.`;
+  } else {
+    explain=`<strong>${whoWon}</strong> wins this hand with <strong>${winName}</strong> against ${whoLost}'s <strong>${loseName}</strong>. Player 1's hole cards were <em>${p1str}</em>, Player 2 had <em>${p2str}</em>. The community board <em>${cstr}</em> ultimately determined the winner — showing how a single card can reshape the entire hand.`;
+  }
+  if(chosenSc===1)explain+=' <strong>Classic underdog story</strong> — the mathematically weaker starting hand connected with the board to beat a premium holding.';
+  if(chosenSc===2)explain+=' <strong>Instant flip scenario</strong> — watch how the river card dramatically reversed the probabilities from a seemingly decided hand.';
+  if(chosenSc===3)explain+=' <strong>Close competition</strong> — both players made powerful hands. This illustrates how matching board cards create near-impossible decisions.';
+  if(chosenSc===4)explain+=' <strong>Domination scenario</strong> — Aces are the strongest starting hand, winning roughly 85% of the time against random holdings pre-flop.';
+  if(chosenSc===5)explain+=' <strong>Split pot</strong> — both players shared the same best 5-card combination. The pot is divided equally, a rare but dramatic outcome.';
+  return explain;
+}
+
+/* ═══════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════ */
+function setSt(t){document.getElementById('sPill').textContent=t;}
+function setPot(t){document.getElementById('potxt').textContent=t;}
+function enAct(on){document.getElementById('bFold').disabled=!on;document.getElementById('bCall').disabled=!on;}
+function showResult(t,s,ex){
+  document.getElementById('resTitle').textContent=t;
+  document.getElementById('resSub').textContent=s;
+  document.getElementById('resExplain').innerHTML=ex;
+  document.getElementById('resBox').classList.add('on');
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+/* ═══════════════════════════════════════════
+   FLOW
+═══════════════════════════════════════════ */
+function startGame(){
+  document.getElementById('landing').classList.add('gone');
+  document.getElementById('game').classList.add('on');
+  setTimeout(()=>newHand(),700);
+}
+function openInfoPopup(){document.getElementById('infoPop').classList.add('on');}
+function closeInfoAndStart(){document.getElementById('infoPop').classList.remove('on');startGame();}
+function openAbout(){document.getElementById('aov').classList.add('on');}
+function closeAbout(){document.getElementById('aov').classList.remove('on');}
+function maybeClose(e){if(e.target===document.getElementById('aov'))closeAbout();}
+</script>
+</body>
+</html>
